@@ -9,4 +9,12 @@ export default defineConfig({
     outDir: 'dist',  // Make sure the build output directory is set correctly
     assetsDir: 'assets',  // Optional: Specify assets directory inside 'dist'
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      }
+    }
+  }
 })
