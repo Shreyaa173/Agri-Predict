@@ -1,70 +1,45 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, render_template, redirect, url_for, flash, jsonify, send_from_directory
 import numpy as np
-import pickle
+import sklearn
 import os
+import traceback
 from flask_cors import CORS
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.ensemble import RandomForestClassifier
+import joblib
 
-app = Flask(__name__, static_folder='../client/dist', static_url_path='')
-CORS(app)
-app.secret_key = os.environ.get('SECRET_KEY', 'default_dev_key')
-
-def create_scalers():
-    min_max_scaler = MinMaxScaler()
-    standard_scaler = StandardScaler()
-    synthetic_data = np.array([
-        [0, 0, 0, 0, 0, 0, 0],
-        [140, 140, 140, 50, 100, 14, 300],
-        [70, 70, 70, 25, 50, 7, 150],
-        [20, 20, 20, 15, 30, 5, 50],
-        [120, 120, 120, 35, 80, 10, 250]
-    ])
-    min_max_scaler.fit(synthetic_data)
-    standard_scaler.fit(synthetic_data)
-    return min_max_scaler, standard_scaler
-
-def create_fallback_model():
-    X_train = np.array([
-    [90, 42, 43, 20, 80, 6.5, 200],  # Rice
-    [60, 55, 70, 30, 75, 6.8, 180],  # Maize
-    [40, 35, 20, 35, 65, 6.0, 100],  # Jute
-    [80, 40, 50, 32, 60, 7.0, 160],  # Cotton
-])
-    y_train = np.array([1, 2, 3, 4])  # Maps to different crops
-    model = RandomForestClassifier()
-    model.fit(X_train, y_train)
-    return model
-
-def load_model_create_scalers():
+# Function to load model and scalers
+def load_models():
     try:
-        if os.path.exists('crop_recommendation.pkl'):
-            with open('crop_recommendation.pkl', 'rb') as f:
-                model = pickle.load(f)
-        else:
-            model = create_fallback_model()
-        mx, sc = create_scalers()
+        model = joblib.load('model.pkl')  # Load the trained model
+        sc = joblib.load('standardscaler.pkl')  # Load StandardScaler
+        mx = joblib.load('minmaxscaler.pkl')  # Load MinMaxScaler
+        
+        # Print model information for debugging
+        print(f"Model loaded successfully. Type: {type(model)}")
+        if hasattr(model, 'classes_'):
+            print(f"Model classes: {model.classes_}")
+        if hasattr(model, 'n_classes_'):
+            print(f"Number of classes: {model.n_classes_}")
+            
         return model, sc, mx
+
     except Exception as e:
-        print(f"Error in load_model_create_scalers: {e}")
+        print(f"Error loading model or scalers: {e}")
         return None, None, None
 
-model, sc, mx = load_model_create_scalers()
+# Initialize Flask app
+app = Flask(__name__, static_folder='build')
+app.secret_key = 'your_secret_key'
+CORS(app)
 
-@app.route('/')
-def serve():
-    return send_from_directory(app.static_folder, 'index.html')
-
-@app.errorhandler(404)
-def not_found(e):
-    return send_from_directory(app.static_folder, 'index.html')
+# Load models, scalers
+model, sc, mx = load_models()
 
 @app.route('/api/')
-def index():
+def api_index():
     return jsonify({"message": "Welcome to the Crop Recommendation API"})
 
 @app.route('/api/soil-analysis')
-def home():
+def api_home():
     return jsonify({"message": "Soil Analysis Service"})
 
 @app.route('/api/signup', methods=['POST'])
@@ -91,18 +66,23 @@ def resources():
     return jsonify({"resources": resources_data})
 
 @app.route("/api/predict", methods=['POST'])
-def predict():
+def api_predict():
     data = request.json
     if model is None:
         return jsonify({
             "success": False,
             "error": "Model failed to load. Please check server configuration."
         }), 500
+
+    crop_dict = {
+        1: "Rice", 2: "Maize", 3: "Jute", 4: "Cotton", 5: "Coconut", 6: "Papaya", 7: "Orange",
+        8: "Apple", 9: "Muskmelon", 10: "Watermelon", 11: "Grapes", 12: "Mango", 13: "Banana",
+        14: "Pomegranate", 15: "Lentil", 16: "Blackgram", 17: "Mungbean", 18: "Mothbeans",
+        19: "Pigeonpeas", 20: "Kidneybeans", 21: "Chickpea", 22: "Coffee"
+    }
+
     try:
-        if sc is None or mx is None:
-            mx_new, sc_new = create_scalers()
-        else:
-            mx_new, sc_new = mx, sc
+        # Extract features from input data
         N = float(data.get('Nitrogen', 0))
         P = float(data.get('Phosphorus', 0))
         K = float(data.get('Potassium', 0))
@@ -110,32 +90,59 @@ def predict():
         humidity = float(data.get('Humidity', 0))
         ph = float(data.get('pH', 0))
         rainfall = float(data.get('Rainfall', 0))
+
         feature_list = [N, P, K, temp, humidity, ph, rainfall]
+        print(f"Raw Input Features: {feature_list}")  # Debug log
+
+        # Test without preprocessing
         single_pred = np.array(feature_list).reshape(1, -1)
-        sc_mx_features = sc_new.transform(single_pred)
-        prediction = model.predict(sc_mx_features)
-        crop_dict = {
-            1: "Rice", 2: "Maize", 3: "Jute", 4: "Cotton", 5: "Coconut", 6: "Papaya", 7: "Orange",
-            8: "Apple", 9: "Muskmelon", 10: "Watermelon", 11: "Grapes", 12: "Mango", 13: "Banana",
-            14: "Pomegranate", 15: "Lentil", 16: "Blackgram", 17: "Mungbean", 18: "Mothbeans",
-            19: "Pigeonpeas", 20: "Kidneybeans", 21: "Chickpea", 22: "Coffee"
-        }
-        crop = crop_dict.get(prediction[0], "Unknown crop")
-        result = f"{crop} is the best crop to be cultivated right there"
+        prediction = model.predict(single_pred)
+        print(f"Prediction Without Preprocessing: {prediction}")  # Debug log
+
+        # Uncomment this block if preprocessing is required
+        # mx_features = mx.transform(single_pred)
+        # sc_mx_features = sc.transform(mx_features)
+        # prediction = model.predict(sc_mx_features)
+        # print(f"Prediction With Preprocessing: {prediction}")  # Debug log
+
+        # Handle the case when the prediction is already a string (crop name)
+        if isinstance(prediction, (np.ndarray, list, tuple)):
+            if isinstance(prediction[0], str):  # If model returns string label like 'jute'
+                crop = prediction[0].strip().lower()  # Normalize case and strip whitespace
+                crop_to_label = {v.lower(): k for k, v in crop_dict.items()}  # Case-insensitive mapping
+                predicted_label = crop_to_label.get(crop, -1)
+                crop = crop_dict.get(predicted_label, crop.capitalize())  # Ensure crop name is consistent
+            else:  # If model returns numeric label
+                predicted_label = int(prediction[0])
+                crop = crop_dict.get(predicted_label, f"Unknown Crop (Label: {predicted_label})")
+        else:
+            # fallback in case it's scalar
+            try:
+                predicted_label = int(prediction)
+                crop = crop_dict.get(predicted_label, f"Unknown Crop (Label: {predicted_label})")
+            except:
+                crop = str(prediction)
+                predicted_label = -1
+
+        print(f"Final Crop: {crop}, Label: {predicted_label}")  # Debug log
+
+        result = f"{crop} is the best crop to be cultivated in this region."
+
+        # Return the prediction result with detailed information for debugging
         return jsonify({
             "success": True,
-            "prediction": int(prediction[0]),
+            "prediction": predicted_label,
             "crop": crop,
-            "result": result
+            "result": result,
+            "debug_info": {
+                "raw_prediction": prediction.tolist() if hasattr(prediction, 'tolist') else str(prediction),
+                "features": feature_list
+            }
         })
+
     except Exception as e:
-        import traceback
         return jsonify({
             "success": False,
             "error": str(e),
             "trace": traceback.format_exc()
         }), 400
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
