@@ -1,20 +1,20 @@
 services:
   - type: web
-    name: flask-backend
+    name: fullstack-app
     env: python
     pythonVersion: 3.10
-    buildCommand: cd server && pip install -r requirements.txt
+    buildCommand: |
+      cd client
+      npm install
+      npm run build
+      cd ..
+      mkdir -p server/build
+      cp -r client/build/* server/build/
+      cd server
+      pip install -r requirements.txt
     startCommand: cd server && gunicorn app:app
     plan: free
     envVars:
       - key: FLASK_ENV
         value: production
-    region: oregon
-
-  - type: web
-    name: react-frontend
-    env: static
-    buildCommand: cd client && npm install && npm run build
-    staticPublishPath: client/dist
-    plan: free
     region: oregon

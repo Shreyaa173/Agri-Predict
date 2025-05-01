@@ -23,12 +23,17 @@ app = Flask(__name__, static_folder='build')
 app.secret_key = 'your_secret_key'
 CORS(app)
 
+
 # Load models, scalers
 model, sc, mx = load_models()
 
-@app.route('/')
-def serve():
-    return send_from_directory(app.static_folder, 'index.html')
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
 # Handle React routing
 @app.errorhandler(404)
