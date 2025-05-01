@@ -26,12 +26,21 @@ CORS(app)
 # Load models, scalers
 model, sc, mx = load_models()
 
+@app.route('/')
+def serve():
+    return send_from_directory(app.static_folder, 'index.html')
+
+# Handle React routing
+@app.errorhandler(404)
+def not_found(e):
+    return send_from_directory(app.static_folder, 'index.html')
+
 @app.route('/api/')
-def api_index():
+def index():
     return jsonify({"message": "Welcome to the Crop Recommendation API"})
 
 @app.route('/api/soil-analysis')
-def api_home():
+def home():
     return jsonify({"message": "Soil Analysis Service"})
 
 @app.route('/api/signup', methods=['POST'])
@@ -53,7 +62,7 @@ def contact():
 def resources():
     resources_data = [
         {"title": "Crop Guide", "description": "Guide for growing various crops"},
-        {"title": "Soil Health", "description": "Information about maintaining soil health"}
+        {"title": "Soil Health", "description": "Information about maintaining soil health"},
     ]
     return jsonify({"resources": resources_data})
 
