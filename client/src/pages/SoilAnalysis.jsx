@@ -38,9 +38,19 @@ const SoilAnalysis = () => {
         },
         body: JSON.stringify(formData)
       });
-      
-      const data = await res.json();
-      
+    
+      // Check if the response status is OK (status code 200-299)
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
+    
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonError) {
+        throw new Error("Failed to parse response as JSON");
+      }
+    
       if (data.success) {
         setResult(data.result);
         // Store debug info if available
@@ -50,7 +60,7 @@ const SoilAnalysis = () => {
         }
       } else {
         setError("Error: " + data.error);
-        console.error(data.trace); // logs full trace for debugging
+        console.error("Error Trace:", data.trace); // logs full trace for debugging
       }
     } catch (error) {
       setError("Failed to connect to server.");
@@ -58,7 +68,7 @@ const SoilAnalysis = () => {
     } finally {
       setLoading(false);
     }
-  };
+    
   
   // Field definitions with units for clarity
   const fields = [
@@ -131,19 +141,7 @@ const SoilAnalysis = () => {
             />
             <div className="text-center mt-4">
               <p className="text-lg font-medium text-black">{result}</p>
-              
-              {/* Developer section - can be removed in production */}
-              {debugInfo && (
-                <div className="mt-4 border-t pt-4 text-left w-full">
-                  <details className="cursor-pointer">
-                    <summary className="text-gray-700 font-medium">Developer Debug Info</summary>
-                    <div className="mt-2 p-2 bg-gray-100 rounded text-sm text-gray-800 font-mono overflow-x-auto">
-                      <p>Raw prediction: {JSON.stringify(debugInfo.raw_prediction)}</p>
-                      <p>Input features: {JSON.stringify(debugInfo.features)}</p>
-                    </div>
-                  </details>
-                </div>
-              )}
+            
             </div>
           </div>
         )}

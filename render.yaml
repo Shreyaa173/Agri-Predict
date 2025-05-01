@@ -4,15 +4,15 @@ services:
     env: python
     pythonVersion: 3.10
     buildCommand: |
-      cd client
-      npm install
-      npm run build
+      cd client && npm install && npm run build
       cd ..
       mkdir -p server/build
       cp -r client/build/* server/build/
       cd server
       pip install -r requirements.txt
-    startCommand: cd server && gunicorn app:app
+    startCommand: |
+      cd server
+      gunicorn app:app --bind 0.0.0.0:$PORT
     plan: free
     envVars:
       - key: FLASK_ENV
