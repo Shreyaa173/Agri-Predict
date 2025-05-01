@@ -9,17 +9,9 @@ import joblib
 # Function to load model and scalers
 def load_models():
     try:
-        model = joblib.load('model.pkl')  # Load the trained model
-        sc = joblib.load('standardscaler.pkl')  # Load StandardScaler
-        mx = joblib.load('minmaxscaler.pkl')  # Load MinMaxScaler
-        
-        # Print model information for debugging
-        print(f"Model loaded successfully. Type: {type(model)}")
-        if hasattr(model, 'classes_'):
-            print(f"Model classes: {model.classes_}")
-        if hasattr(model, 'n_classes_'):
-            print(f"Number of classes: {model.n_classes_}")
-            
+        model = joblib.load('model.pkl') 
+        sc = joblib.load('standardscaler.pkl') 
+        mx = joblib.load('minmaxscaler.pkl')  
         return model, sc, mx
 
     except Exception as e:
