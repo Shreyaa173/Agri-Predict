@@ -19,58 +19,7 @@ const SoilAnalysis = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setResult("");
-    setError("");
-    setDebugInfo(null);
-    
-    try {
-      const res = await fetch("http://localhost:5000/api/predict", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(formData)
-      });
-    
-      // Check if the response status is OK (status code 200-299)
-      if (!res.ok) {
-        throw new Error(`HTTP error! Status: ${res.status}`);
-      }
-    
-      let data;
-      try {
-        data = await res.json();
-      } catch (jsonError) {
-        throw new Error("Failed to parse response as JSON");
-      }
-    
-      if (data.success) {
-        setResult(data.result);
-        // Store debug info if available
-        if (data.debug_info) {
-          setDebugInfo(data.debug_info);
-          console.log("Debug info:", data.debug_info);
-        }
-      } else {
-        setError("Error: " + data.error);
-        console.error("Error Trace:", data.trace); // logs full trace for debugging
-      }
-    } catch (error) {
-      setError("Failed to connect to server.");
-      console.error("Network error:", error);
-    } finally {
-      setLoading(false);
-    }
-    
-  
-  // Field definitions with units for clarity
+  // ✅ Define fields outside the handleSubmit function
   const fields = [
     { label: "Nitrogen (kg/ha)", name: "Nitrogen" },
     { label: "Phosphorus (kg/ha)", name: "Phosphorus" },
@@ -81,6 +30,55 @@ const SoilAnalysis = () => {
     { label: "Rainfall (mm)", name: "Rainfall" },
   ];
 
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setResult("");
+    setError("");
+    setDebugInfo(null);
+
+    try {
+      const res = await fetch("/api/predict", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
+
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonError) {
+        throw new Error("Failed to parse response as JSON");
+      }
+
+      if (data.success) {
+        setResult(data.result);
+        if (data.debug_info) {
+          setDebugInfo(data.debug_info);
+          console.log("Debug info:", data.debug_info);
+        }
+      } else {
+        setError("Error: " + data.error);
+        console.error("Error Trace:", data.trace);
+      }
+    } catch (error) {
+      setError("Failed to connect to server.");
+      console.error("Network error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div
       className="min-h-screen bg-cover bg-no-repeat py-24 px-6"
@@ -90,12 +88,15 @@ const SoilAnalysis = () => {
         <h1 className="text-white text-4xl md:text-5xl font-bold text-center mb-12">
           Predict Your Crop <span className="text-green-500">🌱</span>
         </h1>
-        
+
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {fields.map(({ label, name }) => (
               <div key={name}>
-                <label htmlFor={name} className="text-white ml-2 mb-1 block text-base">
+                <label
+                  htmlFor={name}
+                  className="text-white ml-2 mb-1 block text-base"
+                >
                   {label}
                 </label>
                 <input
@@ -141,7 +142,6 @@ const SoilAnalysis = () => {
             />
             <div className="text-center mt-4">
               <p className="text-lg font-medium text-black">{result}</p>
-            
             </div>
           </div>
         )}
