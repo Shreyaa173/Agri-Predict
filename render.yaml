@@ -11,8 +11,9 @@ services:
       cd server
       pip install -r requirements.txt
     startCommand: |
+      startCommand: |
       cd server
-      gunicorn app:app
+      gunicorn app:app --bind 0.0.0.0:$PORT
     plan: free
     envVars:
       - key: FLASK_ENV
