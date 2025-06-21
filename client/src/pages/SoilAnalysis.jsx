@@ -19,7 +19,7 @@ const SoilAnalysis = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ✅ Define fields outside the handleSubmit function
+  // Define fields outside the handleSubmit function
   const fields = [
     { label: "Nitrogen (kg/ha)", name: "Nitrogen" },
     { label: "Phosphorus (kg/ha)", name: "Phosphorus" },
@@ -41,8 +41,15 @@ const SoilAnalysis = () => {
     setError("");
     setDebugInfo(null);
 
+    console.log("Submitting form data:", formData);
+    console.log("Current URL:", window.location.href);
+    console.log("API URL will be:", window.location.origin + "/api/predict");
+
     try {
-      const res = await fetch("/api/predict", {
+      const apiUrl = "/api/predict";
+      console.log("Making request to:", apiUrl);
+      
+      const res = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -50,14 +57,28 @@ const SoilAnalysis = () => {
         body: JSON.stringify(formData),
       });
 
+      console.log("Response status:", res.status);
+      console.log("Response headers:", Object.fromEntries(res.headers.entries()));
+
       if (!res.ok) {
-        throw new Error(`HTTP error! Status: ${res.status}`);
+        const errorText = await res.text();
+        console.error("Response error text:", errorText);
+        throw new Error(`HTTP error! Status: ${res.status}. Response: ${errorText}`);
+      }
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const responseText = await res.text();
+        console.error("Non-JSON response:", responseText);
+        throw new Error(`Expected JSON response, got: ${contentType}. Response: ${responseText}`);
       }
 
       let data;
       try {
         data = await res.json();
+        console.log("Parsed response data:", data);
       } catch (jsonError) {
+        console.error("JSON parsing error:", jsonError);
         throw new Error("Failed to parse response as JSON");
       }
 
@@ -69,13 +90,38 @@ const SoilAnalysis = () => {
         }
       } else {
         setError("Error: " + data.error);
-        console.error("Error Trace:", data.trace);
+        console.error("API Error:", data.error);
+        if (data.trace) {
+          console.error("Error Trace:", data.trace);
+        }
       }
     } catch (error) {
-      setError("Failed to connect to server.");
-      console.error("Network error:", error);
+      console.error("Full error object:", error);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+      
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        setError("Network error: Unable to connect to server. Please check if the server is running.");
+      } else if (error.message.includes('HTTP error')) {
+        setError(`Server error: ${error.message}`);
+      } else {
+        setError(`Connection failed: ${error.message}`);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Test API availability
+  const testAPI = async () => {
+    try {
+      const response = await fetch("/api/");
+      const data = await response.json();
+      console.log("API test successful:", data);
+      alert("API is working: " + data.message);
+    } catch (error) {
+      console.error("API test failed:", error);
+      alert("API test failed: " + error.message);
     }
   };
 
@@ -88,6 +134,16 @@ const SoilAnalysis = () => {
         <h1 className="text-white text-4xl md:text-5xl font-bold text-center mb-12">
           Predict Your Crop <span className="text-green-500">🌱</span>
         </h1>
+
+        {/* Debug button - remove in production */}
+        <div className="text-center mb-4">
+          <button
+            onClick={testAPI}
+            className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          >
+            Test API Connection
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -129,7 +185,7 @@ const SoilAnalysis = () => {
 
         {error && (
           <div className="mt-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-            {error}
+            <strong>Error:</strong> {error}
           </div>
         )}
 
@@ -143,6 +199,17 @@ const SoilAnalysis = () => {
             <div className="text-center mt-4">
               <p className="text-lg font-medium text-black">{result}</p>
             </div>
+          </div>
+        )}
+
+        {debugInfo && (
+          <div className="mt-6 bg-gray-100 border border-gray-400 text-gray-700 px-4 py-3 rounded">
+            <details>
+              <summary className="cursor-pointer font-bold">Debug Information</summary>
+              <pre className="mt-2 text-sm overflow-auto">
+                {JSON.stringify(debugInfo, null, 2)}
+              </pre>
+            </details>
           </div>
         )}
       </div>

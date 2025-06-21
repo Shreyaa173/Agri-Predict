@@ -4,18 +4,35 @@ services:
     env: python
     pythonVersion: 3.10
     buildCommand: |
-      cd client && npm install && npm run build
+      echo "Building React app..."
+      cd client
+      npm install
+      npm run build
+      echo "React build completed"
       cd ..
-      mkdir -p server/build
-      cp -r client/build/* server/build/
+      echo "Setting up Flask server..."
       cd server
+      rm -rf build
+      mkdir -p build
+      cp -r ../client/build/* build/
+      echo "Files copied to server/build:"
+      ls -la build/
       pip install -r requirements.txt
+      echo "Build process completed"
     startCommand: |
-      startCommand: |
       cd server
-      gunicorn app:app --bind 0.0.0.0:$PORT
+      echo "Starting server..."
+      echo "Files in server directory:"
+      ls -la
+      echo "Files in build directory:"
+      ls -la build/
+      gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120
     plan: free
     envVars:
       - key: FLASK_ENV
         value: production
+      - key: TF_CPP_MIN_LOG_LEVEL
+        value: "2"
+      - key: CUDA_VISIBLE_DEVICES
+        value: "-1"
     region: oregon
