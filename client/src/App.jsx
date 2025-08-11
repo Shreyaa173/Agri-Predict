@@ -4,6 +4,7 @@ import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import AboutUsPage from "./pages/AboutUsPage";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import SoilAnalysis from "./pages/SoilAnalysis";
 import ContactPage from "./pages/Contact";
@@ -22,6 +23,7 @@ const App = () => {
             <Route path="/soil-analysis" element={<SoilAnalysis />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/resources" element={<ResourcesPage />} />
+            <Route path="/about" element={<AboutUsPage />} />
           </Routes>
         </div>
         <Footer />
