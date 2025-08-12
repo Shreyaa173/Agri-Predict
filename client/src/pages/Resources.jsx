@@ -6,8 +6,6 @@ const ResourcesPage = () => {
   const [currentCategory, setCurrentCategory] = useState('all');
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [visibleCards, setVisibleCards] = useState(8);
-  const [downloadHistory, setDownloadHistory] = useState({});
-  const [showHistory, setShowHistory] = useState({});
   const cardsPerLoad = 4;
   const categoryDropdownRef = useRef(null);
 
@@ -280,171 +278,6 @@ const ResourcesPage = () => {
     setVisibleCards(prev => prev + cardsPerLoad);
   };
 
-  // Handle resource actions (download, watch, read, etc.)
-  const handleResourceAction = (card) => {
-    const action = card.action.toLowerCase();
-    const timestamp = new Date().toLocaleString();
-    
-    // Add to download/access history
-    setDownloadHistory(prev => ({
-      ...prev,
-      [card.id]: {
-        ...card,
-        accessedAt: timestamp,
-        timesAccessed: (prev[card.id]?.timesAccessed || 0) + 1
-      }
-    }));
-
-    // Get actual URLs based on resource content
-    const getResourceUrl = (card) => {
-      const urls = {
-        // Government and Official Resources
-        1: "https://www.canr.msu.edu/news/farm-custom-rates", // MSU Farm Custom Rates
-        3: "https://www.naco.org/resources/featured/farm-bill", // Farm Bill Reauthorization
-        5: "https://www.irs.gov/publications/p225", // IRS Farmer's Tax Guide
-        8: "https://extension.illinois.edu/global/state-us-agriculture", // State of US Agriculture
-        9: "https://www.farmers.gov/your-business/beginning-farmers", // Beginning Farmer Resources
-        11: "https://www.iowaagriculture.gov/", // Iowa Agriculture Disaster Recovery
-        
-        // Technology and Precision Agriculture
-        2: "https://farmonaut.com/", // Farmonaut AI Platform
-        4: "https://www.startus-insights.com/innovators-guide/agriculture-technology-trends/", // Precision Ag Trends
-        7: "https://www.precisionfarmingdealer.com/", // GPS Machinery Calculator
-        10: "https://www.agriculture.com/technology", // AI in Agriculture
-        13: "https://www.precisionag.com/", // Remote Sensing Analytics
-        
-        // Research and Case Studies
-        6: "https://www.verticalfarmdaily.com/", // Vertical Farming
-        12: "https://www.verdesian.com/", // Agriculture Challenges
-        14: "https://www.iotforall.com/smart-agriculture", // IoT Sensors
-        15: "https://www.ledgerinsights.com/agriculture-blockchain/", // Blockchain Agriculture
-        16: "https://www.soils.org/", // Soil Science Society
-        17: "https://www.climate.gov/", // NOAA Climate Services
-        18: "https://www.precisionag.com/case-studies/" // Variable Rate Application
-      };
-      
-      return urls[card.id] || `https://www.google.com/search?q=${encodeURIComponent(card.title + ' agriculture')}`;
-    };
-
-    // Show success message or perform action based on type
-    if (action.includes('download')) {
-      // Create a sample PDF content for demonstration
-      const pdfContent = `%PDF-1.4
-1 0 obj
-<<
-/Type /Catalog
-/Pages 2 0 R
->>
-endobj
-
-2 0 obj
-<<
-/Type /Pages
-/Kids [3 0 R]
-/Count 1
->>
-endobj
-
-3 0 obj
-<<
-/Type /Page
-/Parent 2 0 R
-/MediaBox [0 0 612 792]
-/Contents 4 0 R
-/Resources <<
-/Font <<
-/F1 5 0 R
->>
->>
->>
-endobj
-
-4 0 obj
-<<
-/Length 44
->>
-stream
-BT
-/F1 12 Tf
-72 720 Td
-(${card.title}) Tj
-ET
-endstream
-endobj
-
-5 0 obj
-<<
-/Type /Font
-/Subtype /Type1
-/BaseFont /Helvetica
->>
-endobj
-
-xref
-0 6
-0000000000 65535 f 
-0000000010 00000 n 
-0000000053 00000 n 
-0000000125 00000 n 
-0000000348 00000 n 
-0000000450 00000 n 
-trailer
-<<
-/Size 6
-/Root 1 0 R
->>
-startxref
-553
-%%EOF`;
-
-      // Create and download the PDF
-      const blob = new Blob([pdfContent], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${card.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      alert(`📥 "${card.title}" has been downloaded successfully!`);
-    } else if (action.includes('watch')) {
-      // Open actual webinar/video URLs
-      const url = getResourceUrl(card);
-      window.open(url, '_blank');
-      alert(`▶️ Opening "${card.title}" in a new tab...`);
-    } else if (action.includes('access') || action.includes('try')) {
-      // Open actual tool/platform URLs
-      const url = getResourceUrl(card);
-      window.open(url, '_blank');
-      alert(`🔧 Accessing "${card.title}" platform...`);
-    } else if (action.includes('read')) {
-      // Open actual document/case study URLs
-      const url = getResourceUrl(card);
-      window.open(url, '_blank');
-      alert(`📄 Opening "${card.title}" for reading...`);
-    } else if (action.includes('explore')) {
-      // Open resource exploration URLs
-      const url = getResourceUrl(card);
-      window.open(url, '_blank');
-      alert(`🌱 Exploring "${card.title}" resources...`);
-    } else {
-      // Generic action with actual URL
-      const url = getResourceUrl(card);
-      window.open(url, '_blank');
-      alert(`✅ Accessing "${card.title}"...`);
-    }
-  };
-
-  // Toggle history view for a specific card
-  const toggleHistory = (cardId) => {
-    setShowHistory(prev => ({
-      ...prev,
-      [cardId]: !prev[cardId]
-    }));
-  };
-
   // Get the appropriate icon component based on the name
   const getIcon = (iconName) => {
     switch (iconName) {
@@ -634,42 +467,15 @@ startxref
                       <span className="ml-2 text-sm text-white">{card.author}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm text-gray-300">
-                      <button 
-                        className="flex items-center space-x-1 hover:text-[#4caf50] transition bg-[#4caf50]/10 hover:bg-[#4caf50]/20 px-3 py-1 rounded-md"
-                        onClick={() => handleResourceAction(card)}
-                      >
+                      <button className="flex items-center space-x-1 hover:text-[#4caf50] transition">
                         {getIcon(card.icon)}
                         <span className="ml-2">{card.action}</span>
                       </button>
-                      <button 
-                        className="flex items-center space-x-1 hover:text-[#4caf50] transition bg-gray-700/20 hover:bg-gray-700/40 px-2 py-1 rounded-md relative"
-                        onClick={() => toggleHistory(card.id)}
-                      >
+                      <button className="flex items-center space-x-1 hover:text-[#4caf50] transition">
                         <i className="fas fa-history"></i>
-                        <span className="ml-1">History</span>
-                        {downloadHistory[card.id] && (
-                          <span className="absolute -top-1 -right-1 bg-[#4caf50] text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                            {downloadHistory[card.id].timesAccessed}
-                          </span>
-                        )}
+                        <span className="ml-2">View History</span>
                       </button>
                     </div>
-                    
-                    {/* History Dropdown */}
-                    {showHistory[card.id] && (
-                      <div className="mt-3 p-3 bg-gray-800/50 rounded-md border border-gray-700">
-                        {downloadHistory[card.id] ? (
-                          <div className="text-xs text-gray-300">
-                            <p className="font-semibold text-[#4caf50] mb-1">Access History:</p>
-                            <p>Last accessed: {downloadHistory[card.id].accessedAt}</p>
-                            <p>Times accessed: {downloadHistory[card.id].timesAccessed}</p>
-                            <p className="mt-2 text-gray-400">Status: ✅ Available in your library</p>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-gray-400">No access history yet. Click "{card.action}" to get started.</p>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
               ))
@@ -687,29 +493,8 @@ startxref
                 onClick={handleLoadMore}
                 className="bg-[#151F14] hover:bg-opacity-80 text-white px-8 py-3 rounded-full transition border-2 border-[#4caf50]"
               >
-                Load More ({filteredResources.length - visibleCards} remaining)
+                Load More
               </button>
-            </div>
-          )}
-
-          {/* Access History Summary */}
-          {Object.keys(downloadHistory).length > 0 && (
-            <div className="mt-8 p-4 bg-[#151F14]/50 rounded-lg border border-[#4caf50]/30">
-              <h3 className="text-white font-semibold mb-3 flex items-center">
-                <i className="fas fa-history text-[#4caf50] mr-2"></i>
-                Your Recent Activity
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {Object.values(downloadHistory).slice(-6).map((item, index) => (
-                  <div key={index} className="bg-gray-800/30 p-3 rounded-md">
-                    <p className="text-white text-sm font-medium truncate">{item.title}</p>
-                    <p className="text-gray-300 text-xs mt-1">
-                      {item.action} • {item.timesAccessed} times
-                    </p>
-                    <p className="text-gray-400 text-xs">{item.accessedAt}</p>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
         </div>
